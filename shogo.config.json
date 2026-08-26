@@ -1,0 +1,7 @@
+{
+  "schema": "./prisma/schema.prisma",
+  "outputs": [
+    { "dir": "./src/generated", "generate": ["routes", "hooks", "types", "api-client"], "fileExtension": "ts" },
+    { "dir": ".", "generate": ["server"], "fileExtension": "tsx", "serverConfig": { "port": 3001, "cors": true, "routesPath": "./src/generated", "apiBasePath": "/api", "customRoutesPath": "./custom-routes" } }
+  ]
+}
