@@ -24,6 +24,7 @@ export default function IntelligenceHub() {
           const Icon = tab.icon
           return (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+              aria-pressed={activeTab === tab.id}
               className={cn('flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all flex-1 justify-center min-w-[120px] whitespace-nowrap',
                 activeTab === tab.id ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-background/50')}
               title={tab.desc}>
