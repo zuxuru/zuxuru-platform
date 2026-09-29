@@ -11,12 +11,12 @@ panels, and custom Hono router are checked in. The business panels are initial
 workspace screens; they explain which data connections are needed and do not
 claim to return live business insights.
 
-The Prisma schema is checked in, but generated Shogo route modules are not.
-Consequently, the server can start without generated application routes, but
-the resource CRUD clients do not have generated data endpoints until those
-routes are implemented and generated. `npm run generate` runs the Shogo CLI's
-Prisma generation workflow; this checkout has no project-level
-`scripts/generate.ts` to generate the application routes.
+The Prisma schema and explicit Hono CRUD endpoints for the checked-in resource
+clients are available. Generated Shogo route modules are not checked in, so
+other routes described by `shogo.config.json` are only available after those
+modules are generated. `npm run generate` runs the Shogo CLI's Prisma
+generation workflow; this checkout has no project-level `scripts/generate.ts`
+to generate the application routes.
 
 ## Stack and layout
 
@@ -35,9 +35,9 @@ Prisma generation workflow; this checkout has no project-level
   default database URL is `file:./dev.db`; set `DATABASE_URL` to use another
   database.
 - `server.tsx` serves the Hono API, health and tools endpoints, and built
-  frontend assets. It expects generated routes and custom routes as described
-  above.
-- `custom-routes.ts` provides the custom API router and `GET /api/status`.
+  frontend assets. It mounts generated routes when available.
+- `custom-routes.ts` provides `GET /api/status` and CRUD routes for the
+  resources exposed by `src/lib/api.ts`.
 - `shogo.config.json` describes the generated route, hook, type, API-client,
   and server outputs.
 
@@ -64,6 +64,13 @@ prepare the local database. Generated Prisma client files are ignored by Git.
 
 - `GET /health` returns an `ok` flag and an ISO timestamp.
 - `GET /api/status` confirms the custom API router is mounted.
+- `/api/products`, `/api/orders`, `/api/aicoaches`, `/api/trainer-packages`,
+  `/api/content-projects`, `/api/courses`, `/api/social-accounts`,
+  `/api/whats-app-contacts`, and `/api/customer-dashboards` support list
+  (`GET`), read (`GET /:id`), create (`POST`), update (`PATCH /:id`), and
+  delete (`DELETE /:id`) operations. List responses contain `items` and
+  `total`; `limit` defaults to 50 and is capped at 100, and `offset` defaults
+  to 0.
 - `GET /api/tools/schemas` lists tool schemas.
 - `POST /api/tools/execute` executes a tool request.
 - Generated application routes, when produced, and custom routes are mounted

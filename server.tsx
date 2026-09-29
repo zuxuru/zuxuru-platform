@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Shogo Technologies, Inc.
 import { Hono } from 'hono'
 import { serveStatic } from 'hono/bun'
-import customRoutes from './custom-routes'
+import { createCustomRoutes } from './custom-routes'
 import { createToolsHandlers } from '@shogo-ai/sdk/tools/server'
 
 const app = new Hono()
@@ -17,15 +17,15 @@ app.use('*', async (c, next) => {
 
 app.get('/health', (c) => c.json({ ok: true, timestamp: new Date().toISOString() }))
 
+const { prisma } = await import('./src/lib/db')
 try {
   const { createAllRoutes } = await import('./src/generated')
-  const { prisma } = await import('./src/lib/db')
   app.route('/api', createAllRoutes(prisma))
 } catch (error) {
   console.warn('Generated API routes are unavailable; serving custom routes only.', error)
 }
 
-app.route('/api', customRoutes)
+app.route('/api', createCustomRoutes(prisma))
 
 const tools = createToolsHandlers({})
 app.post('/api/tools/execute', (c) => tools.execute(c.req.raw))
