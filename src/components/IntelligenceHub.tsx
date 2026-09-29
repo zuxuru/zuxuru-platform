@@ -14,6 +14,7 @@ const TABS = [
   { id: 'opportunity-intel', label: 'Opportunity Intel', icon: Target, desc: 'Lead pipeline & opportunities' },
 ]
 
+/** Renders the tab navigation and the selected business-intelligence view. */
 export default function IntelligenceHub() {
   const [activeTab, setActiveTab] = useState('deep-scan')
   return (
