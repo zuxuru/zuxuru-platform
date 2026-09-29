@@ -21,7 +21,9 @@ try {
   const { createAllRoutes } = await import('./src/generated')
   const { prisma } = await import('./src/lib/db')
   app.route('/api', createAllRoutes(prisma))
-} catch {}
+} catch (error) {
+  console.warn('Generated API routes are unavailable; serving custom routes only.', error)
+}
 
 app.route('/api', customRoutes)
 
