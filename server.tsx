@@ -36,4 +36,4 @@ app.get('*', serveStatic({ path: './dist/index.html' }))
 
 const port = Number(process.env.PORT) || 3001
 console.log(`Server running on http://localhost:${port}`)
-Bun.serve({ port, fetch: app.fetch })
+Bun.serve({ port, hostname: '127.0.0.1', fetch: app.fetch })

@@ -81,6 +81,33 @@ function prismaErrorCode(error: unknown): string | undefined {
   return typeof error.code === 'string' ? error.code : undefined
 }
 
+function extractOpenAIOutputText(response: unknown): string | null {
+  if (typeof response !== 'object' || response === null) return null
+
+  if ('output_text' in response && typeof response.output_text === 'string') {
+    return response.output_text
+  }
+  if (!('output' in response) || !Array.isArray(response.output)) return null
+
+  const text: string[] = []
+  for (const item of response.output) {
+    if (typeof item !== 'object' || item === null || !('content' in item) || !Array.isArray(item.content)) continue
+    for (const block of item.content) {
+      if (
+        typeof block === 'object' &&
+        block !== null &&
+        'type' in block &&
+        block.type === 'output_text' &&
+        'text' in block &&
+        typeof block.text === 'string'
+      ) {
+        text.push(block.text)
+      }
+    }
+  }
+  return text.length > 0 ? text.join('\n') : null
+}
+
 function databaseError(c: Context, error: unknown) {
   const code = prismaErrorCode(error)
   if (code === 'P2025') return c.json({ error: 'Resource not found.' }, 404)
@@ -172,6 +199,78 @@ function registerCrudRoutes<T>(
 export function createCustomRoutes(prisma: PrismaClient) {
   const app = new Hono()
   app.route('/', customRoutes)
+
+  app.post('/ai/chatgpt', async (c) => {
+    const apiKey = process.env.OPENAI_API_KEY
+    if (!apiKey) {
+      return c.json({ error: 'ChatGPT is not configured. Set OPENAI_API_KEY in the server environment.' }, 503)
+    }
+
+    let body: unknown
+    try {
+      body = await c.req.json()
+    } catch {
+      return c.json({ error: 'Request body must be valid JSON.' }, 400)
+    }
+
+    if (
+      typeof body !== 'object' ||
+      body === null ||
+      Array.isArray(body) ||
+      !('prompt' in body) ||
+      typeof body.prompt !== 'string' ||
+      body.prompt.trim().length === 0 ||
+      body.prompt.length > 10_000
+    ) {
+      return c.json({ error: 'prompt must be a non-empty string of at most 10000 characters.' }, 400)
+    }
+
+    const model = process.env.OPENAI_MODEL || 'gpt-4.1-mini'
+    let response: Response
+    try {
+      response = await fetch('https://api.openai.com/v1/responses', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          input: body.prompt.trim(),
+          max_output_tokens: 1200,
+          store: false,
+        }),
+        signal: AbortSignal.timeout(45_000),
+      })
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'TimeoutError') {
+        return c.json({ error: 'ChatGPT did not respond before the request timed out.' }, 504)
+      }
+      console.error('Unable to reach the OpenAI API.', error)
+      return c.json({ error: 'Unable to reach the OpenAI API.' }, 502)
+    }
+
+    if (!response.ok) {
+      if (response.status === 429) return c.json({ error: 'OpenAI API rate limit or quota reached.' }, 429)
+      if (response.status === 401) return c.json({ error: 'OpenAI API rejected the configured server key.' }, 503)
+      console.error(`OpenAI API returned HTTP ${response.status}.`)
+      return c.json({ error: 'The OpenAI API request failed.' }, 502)
+    }
+
+    let result: unknown
+    try {
+      result = await response.json()
+    } catch {
+      return c.json({ error: 'OpenAI API returned an invalid response.' }, 502)
+    }
+
+    const text = extractOpenAIOutputText(result)
+    if (text === null) {
+      return c.json({ error: 'OpenAI API response did not contain generated text.' }, 502)
+    }
+
+    return c.json({ text, model })
+  })
 
   registerCrudRoutes<Product>(app, '/products', {
     name: { type: 'string' }, description: { type: 'string', nullable: true },

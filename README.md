@@ -18,6 +18,10 @@ modules are generated. `npm run generate` runs the Shogo CLI's Prisma
 generation workflow; this checkout has no project-level `scripts/generate.ts`
 to generate the application routes.
 
+The ChatGPT assistant uses the OpenAI Responses API through the local server.
+Floot is not wired yet: its API documentation URL is needed to implement that
+integration against the correct service.
+
 ## Stack and layout
 
 - `src/main.tsx` is the React entry point; `src/index.css` defines Tailwind
@@ -37,7 +41,7 @@ to generate the application routes.
 - `server.tsx` serves the Hono API, health and tools endpoints, and built
   frontend assets. It mounts generated routes when available.
 - `custom-routes.ts` provides `GET /api/status` and CRUD routes for the
-  resources exposed by `src/lib/api.ts`.
+  resources exposed by `src/lib/api.ts`, plus the ChatGPT proxy endpoint.
 - `shogo.config.json` describes the generated route, hook, type, API-client,
   and server outputs.
 
@@ -59,11 +63,20 @@ Vite proxies `/api` requests to `http://localhost:3001`. Build the frontend
 before starting the server so its static files are available in `dist/`.
 Run `npm run db:generate` and `npm run db:push` before starting the server to
 prepare the local database. Generated Prisma client files are ignored by Git.
+Copy `.env.example` to `.env`, then set `OPENAI_API_KEY` to enable the ChatGPT
+assistant; `OPENAI_MODEL` defaults to `gpt-4.1-mini`. The API key must be an
+OpenAI API key (ChatGPT subscriptions do not include API usage).
+Both the Vite development server and Hono API server bind to loopback, since
+this endpoint uses a server-held key and the repository has no user
+authentication. Do not expose these local servers to untrusted networks.
 
 ## Server endpoints
 
 - `GET /health` returns an `ok` flag and an ISO timestamp.
 - `GET /api/status` confirms the custom API router is mounted.
+- `POST /api/ai/chatgpt` sends a prompt to the OpenAI Responses API. Its JSON
+  body is `{ "prompt": "..." }`; prompts are limited to 10000 characters and
+  responses are not stored by the OpenAI API.
 - `/api/products`, `/api/orders`, `/api/aicoaches`, `/api/trainer-packages`,
   `/api/content-projects`, `/api/courses`, `/api/social-accounts`,
   `/api/whats-app-contacts`, and `/api/customer-dashboards` support list

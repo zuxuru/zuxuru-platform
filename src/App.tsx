@@ -1,5 +1,6 @@
 import { BrainCircuit, CircleHelp, Sparkles } from 'lucide-react'
 import IntelligenceHub from '@/components/IntelligenceHub'
+import ChatGPTAssistant from '@/components/ChatGPTAssistant'
 
 /** Renders the Fukulisane business-growth workspace shell. */
 export default function App() {
@@ -41,6 +42,7 @@ export default function App() {
           </p>
         </section>
         <IntelligenceHub />
+        <ChatGPTAssistant />
       </div>
     </main>
   )
